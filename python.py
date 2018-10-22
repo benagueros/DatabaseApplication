@@ -8,9 +8,15 @@ mydb = mysql.connector.connect(
 )
 
 
-# mycursor = mydb.cursor()
+mycursor = mydb.cursor()
 
-# mycursor.execute("SHOW DATABASES")
+mycursor.execute("CREATE TABLE Experiment (ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
 
-# for x in mycursor:
-#    print(x)
+
+#in this table, need to set constraints on Type
+mycursor.execute("CREATE TABLE ParametersTypes (ExperimentID VARCHAR(255) FOREIGN KEY REFERENCES Experiment(ExperimentID), ParameterName VARCHAR(255) PRIMARY KEY, Type VARCHAR(255), Required BOOLEAN)")
+
+mycursor.execute("CREATE TABLE ResultTypes (ExperimentID VARCHAR(255) FOREIGN KEY REFERENCES Experiment(ExperimentID), ")
+
+
+
