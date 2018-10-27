@@ -4,11 +4,11 @@ import sys
 
 def buildTables(mycursor):
 	mycursor.execute("CREATE TABLE Experiment(ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
-	mycursor.execute("CREATE TABLE ParametersTypes(ExperimentID VARCHAR(255), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID), ParameterName VARCHAR(255), Type VARCHAR(255) CHECK (Type IN ('INT', 'FLOAT', 'STRING', 'URL', 'DATE', 'DATETIME')), Required BOOLEAN, KEY(ExperimentID, ParameterName))")
-	mycursor.execute("CREATE TABLE ResultTypes(ExperimentID VARCHAR(255), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID), ResultName VARCHAR(255), Type VARCHAR(255) CHECK (Type IN ('INT', 'FLOAT', 'STRING', 'URL', 'DATE', 'DATETIME')), Required BOOLEAN, KEY(ExperimentID, ResultName))")
-	mycursor.execute("CREATE TABLE Runs(ExperimentID VARCHAR(255), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID), TimeOfRun DATETIME, ExperimentSSN CHAR(6), Success BOOLEAN, KEY(ExperimentID, TimeOfRun))")
-	mycursor.execute("CREATE TABLE RunsParameter(ExperimentID VARCHAR(255), TimeOfRun DATETIME, FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), ParameterName VARCHAR(255), FOREIGN KEY(ExperimentID, ParameterName) REFERENCES ParametersTypes(ExperimentID, ParameterName),Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ParameterName))")
-	mycursor.execute("CREATE TABLE RunsResult(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ResultName VARCHAR(255), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ResultName) REFERENCES ResultTypes(ExperimentID, ResultName), Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ResultName))")
+	mycursor.execute("CREATE TABLE ParametersTypes(ExperimentID VARCHAR(255), ParameterName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, KEY(ExperimentID, ParameterName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID), CONSTRAINT CHK_Type CHECK (Type IN ('INT', 'FLOAT', 'STRING', 'URL', 'DATE', 'DATETIME')))")
+	mycursor.execute("CREATE TABLE ResultTypes(ExperimentID VARCHAR(255), ResultName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, KEY(ExperimentID, ResultName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID), CONSTRAINT CHK_Type CHECK (Type IN ('INT', 'FLOAT', 'STRING', 'URL', 'DATE', 'DATETIME')))")
+	mycursor.execute("CREATE TABLE Runs(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ExperimenterSSN CHAR(6), Success BOOLEAN, KEY(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
+	mycursor.execute("CREATE TABLE RunsParameter(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ParameterName VARCHAR(255), Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ParameterName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ParameterName) REFERENCES ParametersTypes(ExperimentID, ParameterName))")
+	mycursor.execute("CREATE TABLE RunsResult(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ResultName VARCHAR(255), Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ResultName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ResultName) REFERENCES ResultTypes(ExperimentID, ResultName))")
 
 def destroyTables(mycursor):
 	sql="DROP TABLE IF EXISTS "
@@ -35,9 +35,7 @@ mydb = mysql.connector.connect(
 	)
 	
 mycursor = mydb.cursor()
-buildTables(mycursor)
-
-sql = "INSERT INTO Experiment(ExperimentID, ManagerID, StartDate, DataEntryDate) VALUES (%s, %s, %s, %s)"
+#buildTables(mycursor)
 
 
 while True:
@@ -122,7 +120,7 @@ if choice == 1:
 		destroyTables(mycursor)
 		sys.exit(-1)
 	
-	#need to verify and enter the data into the table before moving on to the next one	
+	sql = "INSERT INTO Experiment(ExperimentID, ManagerID, StartDate, DataEntryDate) VALUES (%s, %s, %s, %s)"
 	val = (ExperimentID, ManagerID, date1, date2)
 	mycursor.execute(sql, val)
 	mydb.commit()
@@ -132,14 +130,8 @@ if choice == 1:
 	
 	while parameters > 0:
 		ParameterName = input("Enter ParameterName: ")
-		
-		try:
-			Type = input("Enter Type: ")
-		except:
-			print("")
-			print("INVALID TYPE. EXITING PROGRAM...")
-			destroyTables(mycursor)
-			sys.exit(-1)
+		#The CHECK is ignored for some reason so this constraint is still vulnerable
+		Type = input("Enter Type: ")
 			
 		Required = input("Is It Required? (y/n):  ")
 		
@@ -153,22 +145,58 @@ if choice == 1:
 			destroyTables(mycursor)
 			sys.exit(-3)
 		
-		
+	
 		sql = "INSERT INTO ParametersTypes(ExperimentID, ParameterName, Type, Required) VALUES (%s, %s, %s, %s)"
 		val = (ExperimentID, ParameterName, Type, Required)
-		mycursor.execute(sql, val)
-		mydb.commit()
 		
+		mycursor.execute(sql, val)	
+		mydb.commit()
+		print(mycursor.rowcount, "record inserted.")
 		print("")
 		
-		#need to verify the informaiton and store it in the tables before moving on to the next one
+		
 		parameters-=1
 		#probably use execute many function
 	
 
+if choice == 2:
+	ExperimentID = input("Enter ExperimentID: ")
+	print("Enter TimeOfRun")
+	try:
+		Month = int(input("   Enter Month: "))
+		Day = int(input("   Enter Day: "))
+		Year = int(input("   Enter Year: "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-1)
+		
+	try:	
+		TimeOfRun = datetime.date(Year, Month, Day)
+	except:
+		print("")
+		print("INVALID DATE. MUST BE  DAY(1-31) MONTH(1-12) YEAR(YYYY). EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+	
+	ExperimenterSSN = input("Enter ExperimenterSSN: ")
+	Success = input("Was the run successful?(y/n) ")
+	if Success == "y":
+			Success = 1
+	elif Success == "n":
+			Success = 0
+	else:
+			print("")
+			print("INVALID INPUT. MUST ENTER y or n. EXITING PROGRAM...")
+			destroyTables(mycursor)
+			sys.exit(-3)
+	
+	sql = "INSERT INTO Runs(ExperimentID, TimeOfRun, ExperimenterSSN, Success) VALUES (%s, %s, %s, %s)"
+	val = (ExperimentID, TimeOfRun, ExperimenterSSN, Success)
+	mycursor.execute(sql, val)
+	mydb.commit()
 
 
 
-
-
-destroyTables(mycursor)
+#destroyTables(mycursor)
