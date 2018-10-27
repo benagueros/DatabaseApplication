@@ -1,5 +1,6 @@
 import mysql.connector
 import datetime
+import sys
 
 def buildTables(mycursor):
 	mycursor.execute("CREATE TABLE Experiment(ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
@@ -35,7 +36,7 @@ mydb = mysql.connector.connect(
 	
 mycursor = mydb.cursor()
 buildTables(mycursor)
-#destroyTables(mycursor)
+
 sql = "INSERT INTO Experiment(ExperimentID, ManagerID, StartDate, DataEntryDate) VALUES (%s, %s, %s, %s)"
 
 
@@ -51,34 +52,123 @@ while True:
 		break
 
 print("")
+
+#entering experiment information
 if choice == 1:
 	ExperimentID = input("Enter ExperimentID: ")
 	ManagerID = input("Enter ManagerID: ")
 	print("Enter StartDate")
-	Month = int(input("   Enter Month: "))
-	Day = int(input("   Enter Day: "))
-	Year = int(input("   Enter Year: "))
-	date1 = datetime.date(Year, Month, Day)
+	
+	try:
+		Month = int(input("   Enter Month: "))
+		Day = int(input("   Enter Day: "))
+		Year = int(input("   Enter Year: "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-1)
+		
+	try:	
+		date1 = datetime.date(Year, Month, Day)
+	except:
+		print("")
+		print("INVALID DATE. MUST BE  DAY(1-31) MONTH(1-12) YEAR(YYYY). EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+
 	print("Enter DataEntryDate")
-	Month = int(input("   Enter Month: "))
-	Day = int(input("   Enter Day: "))
-	Year = int(input("   Enter Year: "))
-	date2 = datetime.date(Year, Month, Day)
-	parameters = int(input("How many parameters are there? "))
+	
+	try:
+		Month = int(input("   Enter Month: "))
+		Day = int(input("   Enter Day: "))
+		Year = int(input("   Enter Year: "))
+		print("")
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-1)
+	
+	try:	
+		date2 = datetime.date(Year, Month, Day)
+	except:
+		print("")
+		print("INVALID DATE. MUST BE  DAY(1-31) MONTH(1-12) YEAR(YYYY). EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+	
+	if date1  > datetime.date.today():
+		print("")
+		print("START DATE IS IN THE FUTURE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+	elif date2 > datetime.date.today():
+		print("")
+		print("DATA ENTRY DATE IS IN THE FUTURE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+	elif date1 > date2:
+		print("")
+		print("START DATE IS BEFORE DATA ENTRY DATE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-2)
+		
+	try:
+		parameters = int(input("How many parameters are there? "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-1)
+	
 	#need to verify and enter the data into the table before moving on to the next one	
 	val = (ExperimentID, ManagerID, date1, date2)
 	mycursor.execute(sql, val)
-	
 	mydb.commit()
-	print(mycursor.rowcount, "record inserted.")
+	
+	
 	
 	
 	while parameters > 0:
 		ParameterName = input("Enter ParameterName: ")
-		Type = input("Enter Type: ")
+		
+		try:
+			Type = input("Enter Type: ")
+		except:
+			print("")
+			print("INVALID TYPE. EXITING PROGRAM...")
+			destroyTables(mycursor)
+			sys.exit(-1)
+			
 		Required = input("Is It Required? (y/n):  ")
+		
+		if Required == "y":
+			Required = 1
+		elif Required == "n":
+			Required = 0
+		else:
+			print("")
+			print("INVALID INPUT. MUST ENTER y or n. EXITING PROGRAM...")
+			destroyTables(mycursor)
+			sys.exit(-3)
+		
+		
+		sql = "INSERT INTO ParametersTypes(ExperimentID, ParameterName, Type, Required) VALUES (%s, %s, %s, %s)"
+		val = (ExperimentID, ParameterName, Type, Required)
+		mycursor.execute(sql, val)
+		mydb.commit()
+		
+		print("")
+		
 		#need to verify the informaiton and store it in the tables before moving on to the next one
 		parameters-=1
 		#probably use execute many function
 	
 
+
+
+
+
+
+destroyTables(mycursor)
