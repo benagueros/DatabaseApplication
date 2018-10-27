@@ -196,6 +196,41 @@ if choice == 2:
 	val = (ExperimentID, TimeOfRun, ExperimenterSSN, Success)
 	mycursor.execute(sql, val)
 	mydb.commit()
+	
+	
+	try:
+		parameters = int(input("How many parameters are there? "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		destroyTables(mycursor)
+		sys.exit(-1)
+		
+	while parameters > 0:
+		ParameterName = input("Enter ParameterName: ")
+		Value = input("Enter Parameter Value: ")
+		
+		sql = "INSERT INTO RunsParameter(ExperimentID, TimeOfRun, ParameterName, Value) VALUES (%s, %s, %s, %s)"
+		val = (ExperimentID, TimeOfRun, ParameterName, Value)
+		
+		mycursor.execute(sql, val)	
+		mydb.commit()
+		print(mycursor.rowcount, "record inserted.")
+		print("")
+		parameters-=1
+
+	ResultName = input("Enter ResultName: ")
+	Value = input("Enter Result Value: ")
+		
+	sql = "INSERT INTO RunsResult(ExperimentID, TimeOfRun, ResultName, Value) VALUES (%s, %s, %s, %s)"
+	val = (ExperimentID, TimeOfRun, ResultName, Value)
+	
+	mycursor.execute(sql, val)	
+	mydb.commit()
+	print(mycursor.rowcount, "record inserted.")
+	print("")
+	parameters-=1
+	
 
 
 
