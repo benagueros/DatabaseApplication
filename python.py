@@ -1,4 +1,5 @@
 import mysql.connector
+import datetime
 
 def buildTables(mycursor):
 	mycursor.execute("CREATE TABLE Experiment(ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
@@ -34,7 +35,9 @@ mydb = mysql.connector.connect(
 	
 mycursor = mydb.cursor()
 buildTables(mycursor)
-destroyTables(mycursor)
+#destroyTables(mycursor)
+sql = "INSERT INTO Experiment(ExperimentID, ManagerID, StartDate, DataEntryDate) VALUES (%s, %s, %s, %s)"
+
 
 while True:
 	print("What would you like to do?")
@@ -51,16 +54,31 @@ print("")
 if choice == 1:
 	ExperimentID = input("Enter ExperimentID: ")
 	ManagerID = input("Enter ManagerID: ")
-	StartDate = input("Enter StartDate: ")
-	DataEntryDate = input("Enter DataEntryDate: ")
+	print("Enter StartDate")
+	Month = int(input("   Enter Month: "))
+	Day = int(input("   Enter Day: "))
+	Year = int(input("   Enter Year: "))
+	date1 = datetime.date(Year, Month, Day)
+	print("Enter DataEntryDate")
+	Month = int(input("   Enter Month: "))
+	Day = int(input("   Enter Day: "))
+	Year = int(input("   Enter Year: "))
+	date2 = datetime.date(Year, Month, Day)
 	parameters = int(input("How many parameters are there? "))
 	#need to verify and enter the data into the table before moving on to the next one	
+	val = (ExperimentID, ManagerID, date1, date2)
+	mycursor.execute(sql, val)
+	
+	mydb.commit()
+	print(mycursor.rowcount, "record inserted.")
+	
+	
 	while parameters > 0:
 		ParameterName = input("Enter ParameterName: ")
 		Type = input("Enter Type: ")
 		Required = input("Is It Required? (y/n):  ")
 		#need to verify the informaiton and store it in the tables before moving on to the next one
 		parameters-=1
-
+		#probably use execute many function
 	
 
