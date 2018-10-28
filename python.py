@@ -212,46 +212,50 @@ def enterRun(mycursor):
 	#Enter into RunsParameter Table needs to be consistent with experiment table
 	#Foreign Key Constraints handle the input of data here
 	#Still need to check required status
-	try:
-		Parameters = int(input("How many Parameters are there? "))
-	except:
-		print("")
-		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
-		sys.exit(-1)
-			
-	while Parameters > 0:
-		ParameterName = input("Enter ParameterName: ")
-		Value = input("Enter Value: ")
-		
-		sql = "INSERT INTO RunsParameter(ExperimentID, TimeOfRun, ParameterName, Value) VALUES (%s, %s, %s, %s)"
-		val = (ExperimentID, TimeOfRun, ParameterName, Value)
-		
-		mycursor.execute(sql, val)	
-		mydb.commit()
-		print(mycursor.rowcount, "record inserted.")
-		print("")
-		Parameters-=1
+	#Use the data in the parameters types table with the same Experiment id to askl the user for the appropriate data
+	
+	#Do a query on the parameterstype table using the given experiment id to find all parameter
+	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", ExperimentID)
+	myresult = myscursor.fetchall()
+	for x in myresult:
+		ParameterName = x['ParameterName']
+		sql = "INSERT INTO RunsParameter(ExperimentID, TimeOfRun, ParameterName, Value) VALUE(%s, %s, %s, %s)"
+		if x['Required'] == 1:
+			Value = input("Enter the value of parameter %s", ParameterName)
+			val = (ExperimentID, TimeOfRun, ParamerterName, Value)
+			mycursor.execute(sql, val)
+		else:
+			ans = input("Was %s entered? (y/n) ", ParameterName)
+			while ans != 'y' and ans != 'n':
+				print("Invalid response. Please try again.")
+				ans = input("Was %s entered? (y/n) ", ParameterName)
+			if ans == 'y':
+				Value = input("Enter the value of parameter %s", ParameterName)
+				val = (ExperimentID, TimeOfRun, ParamerterName, Value)
+				mycursor.execute(sql, val)
+	
 	
 	#Enter into RunsResultTable
-	try:
-		Results = int(input("How many Results are there? "))
-	except:
-		print("")
-		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
-		sys.exit(-1)
+	#Do a query on just like above but on Result
 	
-	while Results > 0:
-		ResultName = input("Enter ResultName: ")
-		Value = input("Enter Result Value: ")
-		sql = "INSERT INTO RunsResult(ExperimentID, TimeOfRun, ResultName, Value) VALUES (%s, %s, %s, %s)"
-		val = (ExperimentID, TimeOfRun, ResultName, Value)
-		mycursor.execute(sql, val)	
-		mydb.commit()
-		print(mycursor.rowcount, "record inserted.")
-		print("")
-		Results-=1
+	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", ExperimentID)
+	myresult = mycursor.fetchall()
+	for x in myresult:
+		ResultName = x['ResultName']
+		sql = "INSERT INTO RunsResult(ExperimentID, TimeOfRun, ResultName, Value) VALUE(%s, %s, %s, %s)"
+		if x['Required'] == 1 
+			Value = input("Enter the value of result %s", ResultName)
+			val = (ExperimentID, TimeOfRun, ResultName, Value)
+			mycursor.execute(sql, val)
+		else:
+			ans = input("Was %s entered? (y/n) ", ResultName)
+			while ans != 'y' and ans!= 'n':
+				print("Invalid response. Please try again.")
+				ans = input("Was %s entered? (y/n) ", ResultName)
+			if ans == 'y':
+				Value = input("Enter the value of parameter %s", ParameterName)
+				val = (ExperimentID, TimeOfRun, ParamerterName, Value)
+				mycursor.execute(sql, val)
 
 mydb = mysql.connector.connect(
 	host="localhost",
