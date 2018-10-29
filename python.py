@@ -2,13 +2,32 @@ import mysql.connector
 import datetime
 import sys
 
-def buildTables(mycursor):
-	mycursor.execute("CREATE TABLE Experiment(ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
-	mycursor.execute("CREATE TABLE ParametersTypes(ExperimentID VARCHAR(255), ParameterName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, KEY(ExperimentID, ParameterName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
-	mycursor.execute("CREATE TABLE ResultTypes(ExperimentID VARCHAR(255), ResultName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, KEY(ExperimentID, ResultName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
-	mycursor.execute("CREATE TABLE Runs(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ExperimenterSSN CHAR(6), Success BOOLEAN, KEY(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
-	mycursor.execute("CREATE TABLE RunsParameter(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ParameterName VARCHAR(255), Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ParameterName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ParameterName) REFERENCES ParametersTypes(ExperimentID, ParameterName))")
-	mycursor.execute("CREATE TABLE RunsResult(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ResultName VARCHAR(255), Value VARCHAR(255), KEY(ExperimentID, TimeOfRun, ResultName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ResultName) REFERENCES ResultTypes(ExperimentID, ResultName))")
+def buildDB():
+
+	mydb = mysql.connector.connect(
+		host="localhost",
+    		user="HW3335",
+    		passwd="PW3335"
+	)
+	
+	mycursor = mydb.cursor()
+	mycursor.execute("CREATE DATABASE IF NOT EXISTS Experiment")
+	
+	mydb = mysql.connector.connect(
+		host="localhost",
+    		user="HW3335",
+    		passwd="PW3335",	
+		database="Experiment"
+	)
+	
+	mycursor = mydb.cursor()
+	mycursor.execute("CREATE TABLE IF NOT EXISTS Experiment(ExperimentID VARCHAR(255) PRIMARY KEY, ManagerID CHAR(6), startDate DATE, DataEntryDate DATE)")
+	mycursor.execute("CREATE TABLE IF NOT EXISTS ParametersTypes(ExperimentID VARCHAR(255), ParameterName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, UNIQUE KEY(ExperimentID, ParameterName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
+	mycursor.execute("CREATE TABLE IF NOT EXISTS ResultTypes(ExperimentID VARCHAR(255), ResultName VARCHAR(255), Type VARCHAR(255), Required BOOLEAN, UNIQUE KEY(ExperimentID, ResultName), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
+	mycursor.execute("CREATE TABLE IF NOT EXISTS Runs(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ExperimenterSSN CHAR(6), Success BOOLEAN, UNIQUE KEY(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID) REFERENCES Experiment(ExperimentID))")
+	mycursor.execute("CREATE TABLE IF NOT EXISTS RunsParameter(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ParameterName VARCHAR(255), Value VARCHAR(255), UNIQUE KEY(ExperimentID, TimeOfRun, ParameterName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ParameterName) REFERENCES ParametersTypes(ExperimentID, ParameterName))")
+	mycursor.execute("CREATE TABLE IF NOT EXISTS RunsResult(ExperimentID VARCHAR(255), TimeOfRun DATETIME, ResultName VARCHAR(255), Value VARCHAR(255), UNIQUE KEY(ExperimentID, TimeOfRun, ResultName), FOREIGN KEY(ExperimentID, TimeOfRun) REFERENCES Runs(ExperimentID, TimeOfRun), FOREIGN KEY(ExperimentID, ResultName) REFERENCES ResultTypes(ExperimentID, ResultName))")
+	return mycursor
 	
 def destroyTables(mycursor):
 	sql="DROP TABLE IF EXISTS "
@@ -26,10 +45,15 @@ def destroyTables(mycursor):
 	mycursor.execute(sql + table1)
 
 def createProcedure(mycursor):
+	mycursor.execute("DROP PROCEDURE IF EXISTS checkTypes")
 	mycursor.execute("CREATE PROCEDURE checkTypes (IN Type VARCHAR(255)) BEGIN IF Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s THEN BEGIN SIGNAL SQLSTATE %s SET MESSAGE_TEXT = %s; END; END IF; END", ("INT", "FLOAT", "STRING", "URL", "DATE", "DATETIME", "0700C","INVALID VALUE FOR Type"))
+	mycursor.execute("DROP TRIGGER IF EXISTS paramtypes")
 	mycursor.execute("CREATE TRIGGER paramtypes BEFORE INSERT ON ParametersTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END") 
+	mycursor.execute("DROP TRIGGER IF EXISTS paramtypesupdate")
 	mycursor.execute("CREATE TRIGGER paramtypesupdate BEFORE UPDATE ON ParametersTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END")
+	mycursor.execute("DROP TRIGGER IF EXISTS resulttypes")
 	mycursor.execute("CREATE TRIGGER resulttypes BEFORE INSERT ON ResultTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END") 
+	mycursor.execute("DROP TRIGGER IF EXISTS resulttypesupdate")
 	mycursor.execute("CREATE TRIGGER resulttypesupdate BEFORE UPDATE ON ResultTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END")
 	
 def enterExperiment(mycursor):
@@ -194,78 +218,191 @@ def enterRun(mycursor):
 	mydb.commit()
 	
 	#Enter into RunParameters Table
-	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", ExperimentID)
-	myresult = myscursor.fetchall()
+	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
 	for x in myresult:
-		ParameterName = x['ParameterName']
+		ParameterName = x[1]
 		sql = "INSERT INTO RunsParameter(ExperimentID, TimeOfRun, ParameterName, Value) VALUE(%s, %s, %s, %s)"
-		if x['Required'] == 1:
-			Value = input("Enter the value of parameter %s", ParameterName)
-			val = (ExperimentID, TimeOfRun, ParamerterName, Value)
+		if x[3] == 1:
+			print("Enter the value of parameter", ParameterName)
+			Value = input("")
+			val = (ExperimentID, TimeOfRun, ParameterName, Value)
 			mycursor.execute(sql, val)
 		else:
-			ans = input("Was %s entered? (y/n) ", ParameterName)
+			print("Was", ParameterName,"entered? (y/n) ")
+			ans = input("")
 			while ans != 'y' and ans != 'n':
 				print("Invalid response. Please try again.")
-				ans = input("Was %s entered? (y/n) ", ParameterName)
+				print("Was", ParameterName,"entered? (y/n) ")
+				ans = input("")
 			if ans == 'y':
-				Value = input("Enter the value of parameter %s", ParameterName)
+				print("Enter the value of parameter", ParameterName)
+				Value = input("")
 				val = (ExperimentID, TimeOfRun, ParamerterName, Value)
 				mycursor.execute(sql, val)
 	
 	
 	#Enter into RunsResultTable
-	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", ExperimentID)
-	myresult = mycursor.fetchall()
-	for x in myresult:
-		ResultName = x['ResultName']
-		sql = "INSERT INTO RunsResult(ExperimentID, TimeOfRun, ResultName, Value) VALUE(%s, %s, %s, %s)"
-		if x['Required'] == 1 
-			Value = input("Enter the value of result %s", ResultName)
-			val = (ExperimentID, TimeOfRun, ResultName, Value)
-			mycursor.execute(sql, val)
-		else:
-			ans = input("Was %s entered? (y/n) ", ResultName)
-			while ans != 'y' and ans!= 'n':
-				print("Invalid response. Please try again.")
-				ans = input("Was %s entered? (y/n) ", ResultName)
-			if ans == 'y':
-				Value = input("Enter the value of parameter %s", ParameterName)
-				val = (ExperimentID, TimeOfRun, ParamerterName, Value)
+	if Success == 1:
+		mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", (ExperimentID,))
+		myresult = mycursor.fetchall()
+		for x in myresult:
+			ResultName = x[1]
+			sql = "INSERT INTO RunsResult(ExperimentID, TimeOfRun, ResultName, Value) VALUE(%s, %s, %s, %s)"
+			if x[3] == 1:
+				print("Enter the value of result", ResultName)
+				Value = input("")
+				val = (ExperimentID, TimeOfRun, ResultName, Value)
 				mycursor.execute(sql, val)
+			else:
+				print("Was", ResultName, "determined? (y/n) ")
+				ans = input("")
+				while ans != 'y' and ans!= 'n':
+					print("Invalid response. Please try again.")
+					print("Was", ResultName, "determined? (y/n) ")
+					ans = input("")
+				if ans == 'y':
+					print("Enter the value of result", ResultName)
+					Value = input("")
+					val = (ExperimentID, TimeOfRun, ResultName, Value)
+					mycursor.execute(sql, val)
+
+def viewExperiment(mycursor):
+	ExperimentID = input("Enter the desired ExperimentID: ")
+	mycursor.execute("SELECT * FROM Experiment WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	
+	if mycursor.rowcount != 0:
+		print("Experiment", ExperimentID)
+		for x in myresult:
+			print("	Manager:", x[1])
+			print("	Start Date:", x[2])
+			print("	Entry Date:", x[3])
+	else:
+		print("Invalid Experiment ID.")
+		return	
+		
+	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	if mycursor.rowcount != 0:
+		print("	Parameters:")
+		for x in myresult:
+			if x[3] == 1:
+				required="Required"
+			else:
+				required="Not Required" 
+			print("		", x[1], x[2], required)
+	else:
+		print("No Parameters.")	
+		
+	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	if mycursor.rowcount != 0:
+		print("	Results: ")
+		for x in myresult:
+			if x[3] == 1:
+				required="Required"
+			else:
+				required="Not Required" 
+			print("		", x[1], x[2], required)
+	else:
+		print("No Results.")
+
+#need to finish modifying this funciton	
+def viewRun(mycursor)	
+	ExperimentID = input("Enter the desired ExperimentID: ")
+	mycursor.execute("SELECT * FROM Runs WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	
+	if mycursor.rowcount != 0:
+		print("Experiment", ExperimentID)
+		for x in myresult:
+			print("	Time of run:", x[1])
+			print("	Experimenter SSN:", x[2])
+			if x[3] == 0:
+				Success = "Success"
+			else:
+				Success = "Failure"
+			print("	", Success) #specifically stopped here
+	else:
+		print("Invalid Experiment ID.")
+		return	
+		
+	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	if mycursor.rowcount != 0:
+		print("	Parameters:")
+		for x in myresult:
+			if x[3] == 1:
+				required="Required"
+			else:
+				required="Not Required" 
+			print("		", x[1], x[2], required)
+	else:
+		print("No Parameters.")	
+		
+	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", (ExperimentID,))
+	myresult = mycursor.fetchall()
+	if mycursor.rowcount != 0:
+		print("	Results: ")
+		for x in myresult:
+			if x[3] == 1:
+				required="Required"
+			else:
+				required="Not Required" 
+			print("		", x[1], x[2], required)
+	else:
+		print("No Results.")
+	
+	
+	
+	
+buildDB()
 
 mydb = mysql.connector.connect(
-	host="localhost",
-    user="HW3335",
-    passwd="PW3335",
-    database="mydatabase"
+		host="localhost",
+    		user="HW3335",
+    		passwd="PW3335",	
+		database="Experiment"
 	)
 	
 mycursor = mydb.cursor()
-buildTables(mycursor)
+
 createProcedure(mycursor)
-
-
+	
 while True:
-	print("What would you like to do?")
-	print("1. Experiment entry")
-	print("2. Run Entry")
-	choice = int(input(""))
-	if choice != 1 and choice != 2:
-		print("Invalid Choice")
-		print("")
-	else:
+	while True:
+		print("What would you like to do?")
+		print("1. Experiment entry")
+		print("2. Run Entry")
+		print("3. View Experiment Info")
+		print("4. View Run Info")
+		choice = int(input(""))
+		if choice != 1 and choice != 2 and choice != 3 and choice != 4:
+			print("Invalid Choice")
+			print("")
+		else:
+			break
+
+	print("")
+
+	if choice == 1:
+		enterExperiment(mycursor)
+	
+	if choice == 2:
+		enterRun(mycursor)
+		
+	if choice == 3:
+		viewExperiment(mycursor)
+	if choice == 4:
+		viewRun(mycursor)
+			
+	ans = input("Press m to go back to the menu or e to exit. ")
+	while ans != 'm' and ans != 'e':
+		print("Invalid option selected. Try again.")
+		ans = input("Press m to go back to the menu or e to exit. ")
+	
+	if ans == 'e':
 		break
+		
 
-print("")
-
-if choice == 1:
-	enterExperiment(mycursor)
-	
-if choice == 2:
-	enterRun(mycursor)
-	
-
-
-
-#destroyTables(mycursor)
