@@ -26,7 +26,7 @@ def destroyTables(mycursor):
 	mycursor.execute(sql + table1)
 
 def createProcedure(mycursor):
-	#mycursor.execute("CREATE PROCEDURE checkTypes (IN Type VARCHAR(255)) BEGIN IF Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s THEN BEGIN SIGNAL SQLSTATE %s SET MESSAGE_TEXT = %s; END; END IF; END", ("INT", "FLOAT", "STRING", "URL", "DATE", "DATETIME", "0700C","INVALID VALUE FOR Type"))
+	mycursor.execute("CREATE PROCEDURE checkTypes (IN Type VARCHAR(255)) BEGIN IF Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s AND Type != %s THEN BEGIN SIGNAL SQLSTATE %s SET MESSAGE_TEXT = %s; END; END IF; END", ("INT", "FLOAT", "STRING", "URL", "DATE", "DATETIME", "0700C","INVALID VALUE FOR Type"))
 	mycursor.execute("CREATE TRIGGER paramtypes BEFORE INSERT ON ParametersTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END") 
 	mycursor.execute("CREATE TRIGGER paramtypesupdate BEFORE UPDATE ON ParametersTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END")
 	mycursor.execute("CREATE TRIGGER resulttypes BEFORE INSERT ON ResultTypes FOR EACH ROW BEGIN CALL checkTypes(new.Type); END") 
@@ -45,7 +45,6 @@ def enterExperiment(mycursor):
 	except:
 		print("")
 		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-1)
 		
 	try:	
@@ -53,7 +52,6 @@ def enterExperiment(mycursor):
 	except:
 		print("")
 		print("INVALID DATE. MUST BE  DAY(1-31) MONTH(1-12) YEAR(YYYY). EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-2)
 
 	print("Enter DataEntryDate")
@@ -66,7 +64,6 @@ def enterExperiment(mycursor):
 	except:
 		print("")
 		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-1)
 	
 	try:	
@@ -80,50 +77,44 @@ def enterExperiment(mycursor):
 	if date1  > datetime.date.today():
 		print("")
 		print("START DATE IS IN THE FUTURE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-2)
+		
 	elif date2 > datetime.date.today():
 		print("")
 		print("DATA ENTRY DATE IS IN THE FUTURE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-2)
+		
 	elif date1 > date2:
 		print("")
 		print("START DATE IS BEFORE DATA ENTRY DATE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-2)
 		
-	try:
-		parameters = int(input("How many parameters are there? "))
-	except:
-		print("")
-		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
-		sys.exit(-1)
-	
 	sql = "INSERT INTO Experiment(ExperimentID, ManagerID, StartDate, DataEntryDate) VALUES (%s, %s, %s, %s)"
 	val = (ExperimentID, ManagerID, date1, date2)
 	mycursor.execute(sql, val)
 	mydb.commit()
 	
 	#Enter into ParametersTypes Table
+	try:
+		parameters = int(input("How many parameters are there? "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
+		sys.exit(-1)
+	
 	while parameters > 0:
 		ParameterName = input("Enter ParameterName: ")
-		
 		Type = input("Enter Type: ")
-			
 		Required = input("Is It Required? (y/n):  ")
 		
+		while Required != 'y' and Required != 'n':
+			print("Invalid input. Try again.")
+			Required = input("Is it Required? (y/n): ")
+			
 		if Required == "y":
 			Required = 1
-		elif Required == "n":
+		else: 
 			Required = 0
-		else:
-			print("")
-			print("INVALID INPUT. MUST ENTER y or n. EXITING PROGRAM...")
-			destroyTables(mycursor)
-			sys.exit(-3)
-		
 	
 		sql = "INSERT INTO ParametersTypes(ExperimentID, ParameterName, Type, Required) VALUES (%s, %s, %s, %s)"
 		val = (ExperimentID, ParameterName, Type, Required)
@@ -140,26 +131,22 @@ def enterExperiment(mycursor):
 	except:
 		print("")
 		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-1)
 	
 	#Enter into ResultParameters Table	
 	while results > 0:
 		ResultName = input("Enter ResultName: ")
-		
 		Type = input("Enter Type: ")
-			
 		Required = input("Is It Required? (y/n):  ")
 		
+		while Required != 'y' and Required != 'n':
+			print("Invalid input. Try Again.")
+			Required = input("Is It Required? (y/n):  ")
+			
 		if Required == "y":
 			Required = 1
-		elif Required == "n":
-			Required = 0
 		else:
-			print("")
-			print("INVALID INPUT. MUST ENTER y or n. EXITING PROGRAM...")
-			destroyTables(mycursor)
-			sys.exit(-3)
+			Required = 0
 			
 		sql = "INSERT INTO ResultTypes(ExperimentID, ResultName, Type, Required) VALUES (%s, %s, %s, %s)"
 		val = (ExperimentID, ResultName, Type, Required)
@@ -181,7 +168,6 @@ def enterRun(mycursor):
 	except:
 		print("")
 		print("MUST ENTER INTEGER VALUE. EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-1)
 		
 	try:	
@@ -189,7 +175,6 @@ def enterRun(mycursor):
 	except:
 		print("")
 		print("INVALID DATE. MUST BE  DAY(1-31) MONTH(1-12) YEAR(YYYY). EXITING PROGRAM...")
-		destroyTables(mycursor)
 		sys.exit(-2)
 	
 	ExperimenterSSN = input("Enter ExperimenterSSN: ")
@@ -201,7 +186,6 @@ def enterRun(mycursor):
 	else:
 			print("")
 			print("INVALID INPUT. MUST ENTER y or n. EXITING PROGRAM...")
-			destroyTables(mycursor)
 			sys.exit(-3)
 	
 	sql = "INSERT INTO Runs(ExperimentID, TimeOfRun, ExperimenterSSN, Success) VALUES (%s, %s, %s, %s)"
@@ -209,12 +193,7 @@ def enterRun(mycursor):
 	mycursor.execute(sql, val)
 	mydb.commit()
 	
-	#Enter into RunsParameter Table needs to be consistent with experiment table
-	#Foreign Key Constraints handle the input of data here
-	#Still need to check required status
-	#Use the data in the parameters types table with the same Experiment id to askl the user for the appropriate data
-	
-	#Do a query on the parameterstype table using the given experiment id to find all parameter
+	#Enter into RunParameters Table
 	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", ExperimentID)
 	myresult = myscursor.fetchall()
 	for x in myresult:
@@ -236,8 +215,6 @@ def enterRun(mycursor):
 	
 	
 	#Enter into RunsResultTable
-	#Do a query on just like above but on Result
-	
 	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", ExperimentID)
 	myresult = mycursor.fetchall()
 	for x in myresult:
@@ -259,8 +236,8 @@ def enterRun(mycursor):
 
 mydb = mysql.connector.connect(
 	host="localhost",
-    user="root",
-    passwd="Janaifloyd0209!",
+    user="HW3335",
+    passwd="PW3335",
     database="mydatabase"
 	)
 	
