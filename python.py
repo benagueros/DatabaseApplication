@@ -372,8 +372,13 @@ while True:
 		print("2. Run Entry")
 		print("3. View Experiment Info")
 		print("4. View Run Info")
+		print("5. Generate Experiment Report")
+		print("6. Generate Agregate Report")
+		print("7. Parameter Search")
+		print("8. Compare Experiments")
+		print("9. Exit")
 		choice = int(input(""))
-		if choice != 1 and choice != 2 and choice != 3 and choice != 4:
+		if choice > 9 or choice < 1:
 			print("Invalid Choice")
 			print("")
 		else:
@@ -383,14 +388,22 @@ while True:
 
 	if choice == 1:
 		enterExperiment(mycursor)
-	
-	if choice == 2:
+	elif choice == 2:
 		enterRun(mycursor)
-		
-	if choice == 3:
+	elif choice == 3:
 		viewExperiment(mycursor)
-	if choice == 4:
+	elif choice == 4:
 		viewRun(mycursor)
+	elif choice == 5:
+		print("Choice 5 was selected")
+	elif choice == 6:
+		print("Choice 6 was selected")
+	elif choice == 7:
+		print("Choice 7 was selected")
+	elif choice == 8:
+		print("Choice 8 was selected")
+	elif choice == 9:
+		break
 			
 	print("")		
 	ans = input("Press m to go back to the menu or e to exit. ")
