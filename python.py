@@ -309,7 +309,7 @@ def viewExperiment(mycursor):
 		print("No Results.")
 
 #need to finish modifying this funciton	
-def viewRun(mycursor)	
+def viewRun(mycursor):
 	ExperimentID = input("Enter the desired ExperimentID: ")
 	mycursor.execute("SELECT * FROM Runs WHERE ExperimentID = %s", (ExperimentID,))
 	myresult = mycursor.fetchall()
@@ -323,37 +323,32 @@ def viewRun(mycursor)
 				Success = "Success"
 			else:
 				Success = "Failure"
-			print("	", Success) #specifically stopped here
+			print("       ",Success) 
+			
+			mycursor.execute("SELECT * FROM RunsParameter WHERE ExperimentID = %s AND TImeOfRun = %s", (ExperimentID,x[1]))
+			paramresult = mycursor.fetchall()
+			
+			if mycursor.rowcount != 0:
+				print("	Run Parameters:") 
+				for y in paramresult:
+					print("		Parameter Name: ", y[2])
+					print("		Value: ", y[3])
+			else:
+				print("No Parameters.")
+					
+			if x[3] == 0:		
+				mycursor.execute("SELECT * FROM RunsResult WHERE ExperimentID = %s AND TImeOfRun = %s", (ExperimentID,x[1]))
+				runresult = mycursor.fetchall()
+				
+				if mycursor.rowcount != 0:
+					print("	Run Results:")
+					for y in runresult:
+						print("		Result Name: ", y[2])
+						print("		Value: ", y[3])
+				else:
+					print("No Results.")
 	else:
 		print("Invalid Experiment ID.")
-		return	
-		
-	mycursor.execute("SELECT * FROM ParametersTypes WHERE ExperimentID = %s", (ExperimentID,))
-	myresult = mycursor.fetchall()
-	if mycursor.rowcount != 0:
-		print("	Parameters:")
-		for x in myresult:
-			if x[3] == 1:
-				required="Required"
-			else:
-				required="Not Required" 
-			print("		", x[1], x[2], required)
-	else:
-		print("No Parameters.")	
-		
-	mycursor.execute("SELECT * FROM ResultTypes WHERE ExperimentID = %s", (ExperimentID,))
-	myresult = mycursor.fetchall()
-	if mycursor.rowcount != 0:
-		print("	Results: ")
-		for x in myresult:
-			if x[3] == 1:
-				required="Required"
-			else:
-				required="Not Required" 
-			print("		", x[1], x[2], required)
-	else:
-		print("No Results.")
-	
 	
 	
 	
@@ -397,6 +392,7 @@ while True:
 	if choice == 4:
 		viewRun(mycursor)
 			
+	print("")		
 	ans = input("Press m to go back to the menu or e to exit. ")
 	while ans != 'm' and ans != 'e':
 		print("Invalid option selected. Try again.")
