@@ -485,9 +485,7 @@ def paramSearch(mycursor):
 			print("ExperimentID:", x[0], "ManagerID:", x[1], "StartDate:", x[2], "EntryDate:", x[3])
 	else:
 		print("No Data Found.")
-	
-		
-	
+
 	
 	
 	
@@ -517,10 +515,9 @@ while True:
 		print("5. Generate Experiment Report")
 		print("6. Generate Agregate Report")
 		print("7. Parameter Search")
-		print("8. Compare Experiments")
-		print("9. Exit")
+		print("8. Exit")
 		choice = int(input(""))
-		if choice > 9 or choice < 1:
+		if choice > 8 or choice < 1:
 			print("Invalid Choice")
 			print("")
 		else:
@@ -543,8 +540,6 @@ while True:
 	elif choice == 7:
 		paramSearch(mycursor)
 	elif choice == 8:
-		print("Choice 8 was selected")
-	elif choice == 9:
 		break
 			
 	print("")		
