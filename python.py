@@ -472,6 +472,20 @@ def generateAgg(mycursor):
 		print("No information for the provided ExperimentID")
 		
 	
+def paramSearch(mycursor):
+	paramName = input("Enter Parameter Name: ")
+	Type = input("Enter Type: ")
+	
+	mycursor.execute("SELECT e.ExperimentID, ManagerID, StartDate, DataEntryDate FROM Experiment e, ParametersTypes p WHERE e.ExperimentID = p.ExperimentID AND Type = %s AND ParameterName = %s ORDER BY StartDate", (Type, paramName))
+	
+	result = mycursor.fetchall()
+	
+	if mycursor.rowcount != 0:
+		for x in result:
+			print("ExperimentID:", x[0], "ManagerID:", x[1], "StartDate:", x[2], "EntryDate:", x[3])
+	else:
+		print("No Data Found.")
+	
 		
 	
 	
@@ -527,7 +541,7 @@ while True:
 	elif choice == 6:
 		generateAgg(mycursor)
 	elif choice == 7:
-		print("Choice 7 was selected")
+		paramSearch(mycursor)
 	elif choice == 8:
 		print("Choice 8 was selected")
 	elif choice == 9:
