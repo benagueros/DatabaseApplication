@@ -445,31 +445,102 @@ def viewRun(mycursor, html):
 #Generates an aggregate report based on selected aggregates	
 def generateAgg(mycursor):
 	ExperimentID = input("Enter an ExperimentID: ")
-	print("What should we generate? ")
-	print("1. Sum")
-	print( "2. Average")
+	print("Specify Type? ")
+	print("1. INT")
+	print( "2. FLOAT")
 	choice = input("")
 	while choice != "1" and choice != "2":
 		print("ERROR: Invalid selection.")
 		print("Try again.")
 		print("What should we generate? ")
-		print("1. Sum")
-		print( "2. Average")
+		print("1. INT")
+		print( "2. FLOAT")
 		choice = input("")
 		
 	if choice == "1":
-		mycursor.execute("SELECT SUM(r.Value) FROM RunsParameter r, ParametersTypes p WHERE r.ExperimentID = p.ExperimentID AND r.ExperimentID = %s AND p.ExperimentID = %s AND r.ParameterName = p.ParameterName AND Type = 'INT'", (ExperimentID, ExperimentID))
-		choice = "SUM:"
+		choice = "INT"
 	else:
-		mycursor.execute("SELECT AVG(r.Value) FROM RunsParameter r, ParametersTypes p WHERE r.ExperimentID = p.ExperimentID AND r.ExperimentID = %s AND p.ExperimentID = %s AND r.ParameterName = p.ParameterName AND Type = 'INT'", (ExperimentID, ExperimentID))
-		choice = "AVG"
+		choice = "FLOAT"
+			
+			
+	print("Enter Starting Time")
+	
+	#Validating Time of Run
+	try:
+		Month = int(input("	Enter Month: "))
+		Day = int(input("	Enter Day: "))
+		Year = int(input("	Enter Year: "))
+		Hour = int(input("	Enter Hour: "))
+		Minute = int(input("	Enter Minute: "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. RETURNING TO MENU...")
+		return
 		
+	try:	
+		date1 = datetime.datetime(Year, Month, Day, Hour, Minute)
+	except:
+		print("")
+		print("INVALID DATETIME. RETURNING TO MENU")
+		return
+		
+	print("Enter Ending Time")
+	
+	#Validating Time of Run
+	try:
+		Month = int(input("	Enter Month: "))
+		Day = int(input("	Enter Day: "))
+		Year = int(input("	Enter Year: "))
+		Hour = int(input("	Enter Hour: "))
+		Minute = int(input("	Enter Minute: "))
+	except:
+		print("")
+		print("MUST ENTER INTEGER VALUE. RETURNING TO MENU...")
+		return
+		
+	try:	
+		date2 = datetime.datetime(Year, Month, Day, Hour, Minute)
+	except:
+		print("")
+		print("INVALID DATETIME. RETURNING TO MENU")
+		return
+	
+	if date1  > datetime.datetime.today():
+		print("")
+		print("START DATE IS IN THE FUTURE. RETURNING TO MENU...")
+		return
+		
+	elif date2 > datetime.datetime.today():
+		print("")
+		print("DATA ENTRY DATE IS IN THE FUTURE.RETURNING TO MENU...")
+		return
+		
+	elif date1 > date2:
+		print("")
+		print("START DATE IS BEFORE DATA ENTRY DATE. RETURNING TO MENU...")
+		return	
+		
+	mycursor.execute("SELECT SUM(r.Value) FROM RunsResult r, ResultTypes p WHERE r.ExperimentID = p.ExperimentID AND r.ExperimentID = %s AND p.ExperimentID = %s AND r.ResultName = p.ResultName AND Type = %s AND TimeOfRun BETWEEN %s AND %s", (ExperimentID, ExperimentID, choice, date1, date2))
 	result = mycursor.fetchall()	
 	if mycursor.rowcount != 0:	
+		print("SUM:")
 		for x in result:
-			print("Experiment ID:", ExperimentID, choice, x[0])
+			print("	Experiment ID:", ExperimentID, "Type:", choice, "SUM:", x[0])
 	else:
-		print("No information for the provided ExperimentID")
+		print("No Sum information for the provided ExperimentID and Type")
+	
+	mycursor.execute("SELECT AVG(r.Value) FROM RunsResult r, ResultTypes p WHERE r.ExperimentID = p.ExperimentID AND r.ExperimentID = %s AND p.ExperimentID = %s AND r.ResultName = p.ResultName AND Type = %s AND TimeOfRun BETWEEN %s AND %s", (ExperimentID, ExperimentID, choice, date1, date2))
+	result = mycursor.fetchall()	
+	if mycursor.rowcount != 0:	
+		print("AVG:")
+		for x in result:
+			print("	Experiment ID:", ExperimentID, "Type:", choice, "AVG:", x[0])
+	else:
+		print("No Avg information for the provided ExperimentID and Type")
+		
+	
+	
+		
 		
 	
 def paramSearch(mycursor):
